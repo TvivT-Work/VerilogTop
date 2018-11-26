@@ -5,10 +5,11 @@ use utf8;
 use POSIX;
 use List::Util qw/max min/;
 
-$os = $^O;
-$user_name = ($os =~ /MSWin32/) ? $ENV{'USERNAME'} :
-             ($os =~ /linux/  ) ? $ENV{'USER'}     : "Unknow" ;
-  
+my $filecount  = 0; 
+my $vfilecount = 0; 
+my @dir_files;
+my @vfiles;
+ 
 #1. arguments checker
 #=========================== Arguments Checker ===============================
 $argv_total_num = $#ARGV + 1;
@@ -25,7 +26,7 @@ if( $argv_total_num == 0 ) {
 @vfiles = ();
 if($ARGV[1] =~ /\-d/) {
   $ARGV[2] =~ s/\\/\\\\/g;
-  @vfiles = vdir_read($ARGV[2]);
+  @vfiles = get_dir_vfiles($ARGV[2]);
 }
 elsif($ARGV[1] =~/\-l/) {
   open (filelist_handle,"<",$ARGV[2]);
@@ -57,7 +58,7 @@ else {
     disp_usage();
     die "ERROR: Error Arguments !!! \n\n";
 }
-print(" Read Vfiles: @vfiles");
+
 #=========================================================================
 @net_array = ();
 
@@ -68,9 +69,9 @@ $module_line = "`timescale 1ns/10ps \n\n";
 push(@module_lines, $module_line);
 $module_line = "module $top_name( \n";
 push(@module_lines, $module_line);
-$declare_line = "\n\n//============================= DECLARE ===========================\n";
+$declare_line = "//============================= DECLARE ===========================\n";
 push(@declare_lines, $declare_line);
-$instance_line = "\n\n//============================= INSTANCE ==========================\n";
+$instance_line = "//============================= INSTANCE ==========================\n";
 push(@instance_lines, $instance_line);
 
 #=========================================================================
@@ -188,7 +189,6 @@ foreach my $net_name (@net_array) {
   $net_num = $net_num + 1; 
 
   $bit_len = $net_hash{$net_name};
-
   if ($bit_len == 0) {
     $bit_len_str = " ";
   }
@@ -209,20 +209,18 @@ foreach my $net_name (@net_array) {
   }
   push(@module_lines, $module_line);
 
-  if($bit_len>0) {
-    $declare_line  = "wire    ";
-    $declare_line .= $bit_len_str;
-    $declare_line .= " " x (10-length($bit_len_str));
-    $declare_line .= $net_name;
-    $declare_line .= " " x (28-length($net_name));
-    if($net_num == $net_max_num) {
-      $declare_line .= " ;\n\n\n";
-    }
-    else {
-      $declare_line .= " ;\n";
-    }
-    push(@declare_lines, $declare_line);
+  $declare_line  = "wire    ";
+  $declare_line .= $bit_len_str;
+  $declare_line .= " " x (10-length($bit_len_str));
+  $declare_line .= $net_name;
+  $declare_line .= " " x (28-length($net_name));
+  if($net_num == $net_max_num) {
+    $declare_line .= " ;\n\n\n";
   }
+  else {
+    $declare_line .= " ;\n";
+  }
+  push(@declare_lines, $declare_line);
 
 }
 
@@ -235,12 +233,7 @@ $line = "\n\n\nendmodule\n";
 push (@vtop_lines, $line);
 
 #=========================================================================
-if($user_name eq "jianghe") {
-  $vtop_file = "D:\\Desktop\\Perl_Result\\".$ARGV[0].".v";
-}
-else {
-  $vtop_file = $ARGV[0].".v";
-}
+$vtop_file = $ARGV[0].".v";
 
 $vtop_file_exist = -e $vtop_file;
 
@@ -280,18 +273,12 @@ sub disp_usage {
 }
 
 
-sub vdir_read {
+sub get_dir_vfiles {
 
   my $path = $_[0]; #或者使用 my($path) = @_; @_类似javascript中的arguments
   my $subpath;
   my $handle; 
-
-  if ($path =~ /\\$/) {
-  }
-  else {
-    $path .= "\\" ;
-  }
-
+ 
   if (-d $path) {#当前路径是否为一个目录
     if (opendir($handle, $path)) {
       while ($subpath = readdir($handle)) {
@@ -315,29 +302,31 @@ sub vdir_read {
   } 
  
   return @dir_files;
-
-
-
-  # $dir_path = $_[0];
-
-  # if ($dir_path =~ /\\$/) {
-  # }
-  # else {
-  #   $dir_path .= "\\" ;
-  # }
-
-  # opendir (DIR, $dir_path) || die"$!";
-  # # chdir($dir_path);
-  
-  # @vfilenames=grep{/\.v$|\.sv$/}readdir DIR;
-  
-  # foreach $filename(@vfilenames){
-  #   $vfile = $dir_path.$filename; 
-  #   push (@vfiles, $vfile);
-  # }
-  
-  # close DIR;
-
-  # return @vfiles;
-
 }
+
+# sub vdir_read {
+#   $dir_path = $_[0];
+  
+#   if ($dir_path =~ /\/$/) {
+#   }
+#   else {
+#     $dir_path .= "/" ;
+#   }
+
+#   opendir (DIR, $dir_path) || die"$!";
+#   # chdir($dir_path);
+  
+#   @vfilenames=grep{/\.v$|\.sv$/}readdir DIR;
+  
+#   foreach $filename(@vfilenames){
+#     $vfile = $dir_path.$filename; 
+#     push (@vfiles, $vfile);
+#   }
+  
+#   close DIR;
+
+#   return @vfiles;
+
+# }
+
+
